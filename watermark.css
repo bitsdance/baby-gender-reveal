@@ -1,3 +1,19 @@
-.watermark {
-  background-image: url('ganesha-watermark.svg');
+.panel::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: url('ganesha-watermark.svg') center 52% / min(88%, 460px) auto no-repeat;
+  content: '';
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.welcome-panel::after {
+  background-position: center 48%;
+  opacity: 0.11;
+}
+
+.quiz-panel::after {
+  background-position: center 52%;
+  opacity: 0.16;
 }
