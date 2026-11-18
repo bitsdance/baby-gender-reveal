@@ -15,6 +15,9 @@ let name = '';
 let step = -1;
 let submitting = false;
 let confettiFrame = 0;
+let revealToken = '';
+let gameUnlocked = false;
+let revealPending = false;
 const $ = id => document.getElementById(id);
 const welcome = $('welcome'), quiz = $('quiz'), resultPanel = $('result');
 const progress = $('progress-wrap'), content = $('quiz-content');
@@ -22,13 +25,23 @@ const progress = $('progress-wrap'), content = $('quiz-content');
 document.querySelector('[data-start]').addEventListener('click', () => { step = 0; welcome.hidden = true; quiz.hidden = false; progress.hidden = false; renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
 $('back-button').addEventListener('click', () => { if (step > 0) { step--; renderStep(); } else { quiz.hidden = true; welcome.hidden = false; progress.hidden = true; } });
 $('next-button').addEventListener('click', advance);
+$('continue-game-button').addEventListener('click', startMiniGame);
+$('final-reveal-button').addEventListener('click', revealBaby);
 $('retry-button').addEventListener('click', () => {
   for (const question of questions) delete answers[question.key];
   delete answers.prediction;
   step = 1;
   resultPanel.hidden = true;
   resultPanel.classList.remove('reveal-active');
+  resultPanel.removeAttribute('data-gender');
   $('incorrect-result').hidden = true;
+  $('feedback-result').hidden = true;
+  $('minigame-result').hidden = true;
+  $('reveal-result').hidden = true;
+  $('final-reveal-button').hidden = true;
+  revealToken = '';
+  gameUnlocked = false;
+  revealPending = false;
   progress.hidden = false;
   quiz.hidden = false;
   $('next-button').disabled = false;
@@ -89,21 +102,22 @@ async function submitEntry() {
     const response = await fetch('/.netlify/functions/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...entry, requestId }) });
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.error || 'I could not send that just now. Please try again.');
+    if (result.eligible && (typeof result.revealToken !== 'string' || !Array.isArray(result.wrongAnswers))) throw new Error('I could not prepare the reveal. Please try again.');
     localStorage.removeItem('babyRevealRequest');
     quiz.hidden = true; progress.hidden = true; resultPanel.hidden = false;
-    if (result.eligible && ['BOY', 'GIRL'].includes(result.gender)) {
-      $('incorrect-result').hidden = true;
-      $('reveal-result').hidden = false;
-      $('reveal-title').textContent = `It's a ${result.gender === 'BOY' ? 'Boy' : 'Girl'}!`;
-      $('reveal-copy').textContent = `Thank you for playing, ${name}. Our little one is already surrounded by so much love.`;
-      resultPanel.classList.remove('reveal-active');
-      requestAnimationFrame(() => resultPanel.classList.add('reveal-active'));
-      window.setTimeout(launchConfetti, 650);
+    resultPanel.classList.remove('reveal-active');
+    resultPanel.removeAttribute('data-gender');
+    $('incorrect-result').hidden = true;
+    $('feedback-result').hidden = true;
+    $('minigame-result').hidden = true;
+    $('reveal-result').hidden = true;
+    if (result.eligible) {
+      revealToken = result.revealToken;
+      renderMissedAnswers(result.wrongAnswers);
+      $('feedback-result').hidden = false;
     } else {
-      $('reveal-result').hidden = true;
       $('incorrect-result').hidden = false;
       $('retry-name').textContent = name + '!';
-      resultPanel.classList.remove('reveal-active');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
@@ -121,6 +135,101 @@ function getRequestId(entry) {
   }
   return saved.id;
 }
+function renderMissedAnswers(wrongAnswers) {
+  const count = wrongAnswers.length;
+  $('feedback-copy').textContent = count
+    ? `You got ${count} ${count === 1 ? 'answer' : 'answers'} wrong. Here are the right answers:`
+    : 'Perfect score! You got every answer right.';
+  $('missed-answers').innerHTML = wrongAnswers.map(item => `
+    <li class="missed-answer">
+      <span class="missed-question">${escapeHtml(item.question)}</span>
+      <span class="answer-pair"><span>You chose</span><strong>${escapeHtml(item.selected)}</strong></span>
+      <span class="answer-pair correct-answer"><span>The right answer</span><strong>${escapeHtml(item.correct)}</strong></span>
+    </li>`).join('');
+}
+function startMiniGame() {
+  $('feedback-result').hidden = true;
+  $('minigame-result').hidden = false;
+  $('final-reveal-button').hidden = true;
+  $('final-reveal-button').disabled = false;
+  $('final-reveal-button').innerHTML = 'Open the real reveal <span aria-hidden="true">&#10023;</span>';
+  $('tile-board').innerHTML = '';
+  $('game-progress').textContent = 'Pick a tile to begin.';
+  gameUnlocked = false;
+  revealPending = false;
+  const tiles = shuffle(['BOY', 'BOY', 'BOY', 'BOY', 'GIRL', 'GIRL', 'GIRL', 'GIRL', 'STAR']);
+  const counts = { BOY: 0, GIRL: 0 };
+  tiles.forEach((value, index) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'game-tile';
+    tile.textContent = '?';
+    tile.setAttribute('aria-label', `Covered lucky tile ${index + 1}`);
+    tile.dataset.value = value;
+    tile.addEventListener('click', () => {
+      if (tile.disabled || gameUnlocked) return;
+      tile.disabled = true;
+      tile.classList.add('is-revealed');
+      if (value === 'STAR') {
+        tile.classList.add('is-star');
+        tile.textContent = '\u2726';
+        tile.setAttribute('aria-label', 'Lucky star tile');
+        $('game-progress').textContent = 'A lucky star! Pick another tile.';
+        return;
+      }
+      counts[value]++;
+      const label = value === 'BOY' ? 'Boy' : 'Girl';
+      tile.textContent = label;
+      tile.classList.add(value === 'BOY' ? 'is-boy' : 'is-girl');
+      tile.setAttribute('aria-label', `${label} guess tile`);
+      if (counts[value] >= 3) {
+        gameUnlocked = true;
+        $('tile-board').querySelectorAll('.game-tile:not(.is-revealed)').forEach(button => { button.disabled = true; });
+        $('game-progress').textContent = `Three ${label} guesses! Your tiles were just for fun. The real answer is still waiting.`;
+        $('final-reveal-button').hidden = false;
+      } else {
+        $('game-progress').textContent = `You have ${counts[value]} of 3 ${label} guesses. Keep picking.`;
+      }
+    });
+    $('tile-board').appendChild(tile);
+  });
+}
+async function revealBaby() {
+  if (!gameUnlocked || revealPending || !revealToken) return;
+  revealPending = true;
+  const button = $('final-reveal-button');
+  button.disabled = true;
+  button.textContent = 'Opening the surprise\u2026';
+  try {
+    const response = await fetch('/.netlify/functions/reveal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: revealToken })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok || !['BOY', 'GIRL'].includes(result.gender)) throw new Error(result.error || 'I could not open the reveal just yet. Please try again.');
+    $('minigame-result').hidden = true;
+    $('reveal-result').hidden = false;
+    $('reveal-title').textContent = `It's a ${result.gender === 'BOY' ? 'Boy' : 'Girl'}!`;
+    $('reveal-copy').textContent = `Thank you for playing, ${name}. Our little one is already surrounded by so much love.`;
+    resultPanel.dataset.gender = result.gender;
+    resultPanel.classList.remove('reveal-active');
+    requestAnimationFrame(() => resultPanel.classList.add('reveal-active'));
+    window.setTimeout(launchConfetti, 1200);
+  } catch (error) {
+    $('game-progress').textContent = error.message || 'I could not open the reveal just yet. Please try again.';
+    button.disabled = false;
+    button.innerHTML = 'Try the reveal again <span aria-hidden="true">&#10023;</span>';
+    revealPending = false;
+  }
+}
+function shuffle(items) {
+  for (let index = items.length - 1; index > 0; index--) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [items[index], items[other]] = [items[other], items[index]];
+  }
+  return items;
+}
 function launchConfetti() {
   const canvas = $('confetti-canvas');
   const context = canvas && canvas.getContext('2d');
@@ -136,17 +245,31 @@ function launchConfetti() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   const palette = ['#d99bad', '#a9c7e6', '#c5a56e', '#f5dbe4', '#dceafb', '#fff9ec'];
-  const pieces = Array.from({ length: 150 }, () => ({
+  const shower = Array.from({ length: 220 }, () => ({
     x: Math.random() * width,
     y: -Math.random() * height * 0.8,
-    size: Math.random() * 6 + 4,
-    speed: Math.random() * 3.2 + 2.4,
-    drift: (Math.random() - 0.5) * 1.1,
+    vx: (Math.random() - 0.5) * 1.3,
+    vy: Math.random() * 3.4 + 2.2,
+    gravity: 0.025,
+    size: Math.random() * 7 + 5,
     rotation: Math.random() * Math.PI,
     spin: (Math.random() - 0.5) * 0.12,
     color: palette[Math.floor(Math.random() * palette.length)],
     round: Math.random() < 0.28
   }));
+  const burst = Array.from({ length: 90 }, () => ({
+    x: width / 2 + (Math.random() - 0.5) * 70,
+    y: height * 0.47,
+    vx: (Math.random() - 0.5) * 13,
+    vy: -Math.random() * 12 - 3,
+    gravity: 0.24,
+    size: Math.random() * 8 + 5,
+    rotation: Math.random() * Math.PI,
+    spin: (Math.random() - 0.5) * 0.16,
+    color: palette[Math.floor(Math.random() * palette.length)],
+    round: Math.random() < 0.25
+  }));
+  const pieces = [...shower, ...burst];
   const start = performance.now();
 
   function draw(now) {
@@ -154,8 +277,9 @@ function launchConfetti() {
     const fade = Math.max(0, 1 - Math.max(0, elapsed - 2600) / 1300);
     context.clearRect(0, 0, width, height);
     for (const piece of pieces) {
-      piece.x += piece.drift;
-      piece.y += piece.speed;
+      piece.x += piece.vx;
+      piece.y += piece.vy;
+      piece.vy += piece.gravity;
       piece.rotation += piece.spin;
       context.save();
       context.translate(piece.x, piece.y);

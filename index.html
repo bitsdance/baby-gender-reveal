@@ -37,8 +37,24 @@
       <canvas id="confetti-canvas" aria-hidden="true"></canvas>
       <div id="incorrect-result" class="result-message" hidden>
         <p class="eyebrow">ONE MORE TRY</p><h1>Almost there,<br><span id="retry-name"></span></h1>
-        <p class="result-copy">Some answers were incorrect. Get at least 8 out of 9 right to unlock the big reveal.</p>
+        <p class="result-copy">Get at least 7 out of 9 right. That means you can miss two answers and still unlock the little game and big reveal.</p>
         <button class="button primary" id="retry-button" type="button">Play again <span>&#8635;</span></button>
+      </div>
+      <div id="feedback-result" class="result-message" hidden>
+        <p class="eyebrow">A LITTLE LOOK BACK</p>
+        <h1 id="feedback-title">By the way…</h1>
+        <p class="result-copy" id="feedback-copy"></p>
+        <ol class="missed-answer-list" id="missed-answers"></ol>
+        <p class="game-disclaimer">Now for one last bit of fun before the real surprise.</p>
+        <button class="button primary" id="continue-game-button" type="button">Play the little game <span aria-hidden="true">&#8594;</span></button>
+      </div>
+      <div id="minigame-result" class="result-message" hidden>
+        <p class="eyebrow">ONE LAST LITTLE GAME</p>
+        <h1>Find three<br><span>of a kind</span></h1>
+        <p class="result-copy">Open the lucky tiles and find three Boy or three Girl guesses. These tiles are just for fun; the real answer is still hidden.</p>
+        <div class="tile-board" id="tile-board" role="group" aria-label="Covered lucky tiles"></div>
+        <p class="game-progress" id="game-progress" role="status" aria-live="polite">Pick a tile to begin.</p>
+        <button class="button primary" id="final-reveal-button" type="button" hidden>Open the real reveal <span aria-hidden="true">&#10023;</span></button>
       </div>
       <div id="reveal-result" class="result-message" hidden>
         <p class="eyebrow">THE WAIT IS OVER</p><h1 id="reveal-title"></h1>
