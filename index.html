@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f8f4e9">
+  <meta name="theme-color" content="#f7e8ee">
   <meta name="description" content="A little welcome from our newest family member, with a quiz for the people who love them.">
   <title>A Little Hello | Baby Reveal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="watermark.css"><link rel="stylesheet" href="reveal.css">
 </head>
 <body>
   <main class="shell">
     <div class="watermark" aria-hidden="true"></div>
-    <header class="topbar"><span class="brand-mark" aria-hidden="true">✳</span><span>A little hello</span><span class="top-note">Made with love</span></header>
+    <header class="topbar"><span class="brand-mark" aria-hidden="true">&#10022;</span><span>A little hello</span><span class="top-note">A family celebration</span></header>
     <div class="progress-wrap" id="progress-wrap" hidden><div class="progress-meta"><span id="step-label">Your little quiz</span><span id="step-count"></span></div><div class="progress-track"><div id="progress-fill"></div></div></div>
     <section id="welcome" class="panel welcome-panel">
       <p class="eyebrow">A LITTLE MESSAGE FROM ME</p>
       <h1>Hello, my dearest<br><span>Uncles and Aunties!</span></h1>
-      <div class="divider"><i></i><span>✧</span><i></i></div>
+      <div class="divider"><i></i><span>&#10023;</span><i></i></div>
       <div class="letter">
         <p>I've finally arrived!</p>
         <p>I know you've all been waiting so eagerly to meet me, shower me with love and welcome me into this beautiful family.</p>
@@ -27,27 +27,28 @@
         <p>Before you meet me, I've got a little game for you! Let's see how well you know my Mama and Papa.</p>
         <p class="signoff">With lots of tiny hugs and love,<br><strong>Your newest little family member</strong></p>
       </div>
-      <button class="button primary" data-start>Come play with me <span aria-hidden="true">→</span></button>
+      <button class="button primary" data-start>Come play with me <span aria-hidden="true">&#8594;</span></button>
       <p class="microcopy">A few little questions, then one big guess.</p>
     </section>
     <section id="quiz" class="panel quiz-panel" hidden>
       <div id="quiz-content"></div>
-      <div class="quiz-actions"><button class="button text-button" id="back-button" type="button">← Back</button><button class="button primary" id="next-button" type="button">Continue <span>→</span></button></div>
+      <div class="quiz-actions"><button class="button text-button" id="back-button" type="button">&#8592; Back</button><button class="button primary" id="next-button" type="button">Continue <span>&#8594;</span></button></div>
     </section>
     <section id="result" class="panel result-panel" hidden>
+      <canvas id="confetti-canvas" aria-hidden="true"></canvas>
       <div id="incorrect-result" class="result-message" hidden>
         <p class="eyebrow">ONE MORE TRY</p><h1>Almost there,<br><span id="retry-name"></span></h1>
         <p class="result-copy">Some answers were incorrect. Get at least 8 out of 9 right to unlock the big reveal.</p>
-        <button class="button primary" id="retry-button" type="button">Play again <span>↻</span></button>
+        <button class="button primary" id="retry-button" type="button">Play again <span>&#8635;</span></button>
       </div>
       <div id="reveal-result" class="result-message" hidden>
         <p class="eyebrow">THE WAIT IS OVER</p><h1 id="reveal-title"></h1>
         <p class="result-copy" id="reveal-copy"></p>
-        <div class="divider"><i></i><span>✧</span><i></i></div>
+        <div class="divider"><i></i><span>&#10023;</span><i></i></div>
         <p class="signoff">With lots of tiny hugs and love,<br><strong>Your newest little family member</strong></p>
       </div>
     </section>
-    <footer>With love, from our growing family <span>✧</span></footer>
+    <footer>With love, from our growing family <span>&#10023;</span></footer>
   </main>
   <script src="app.js" defer></script>
 </body>

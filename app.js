@@ -14,6 +14,7 @@ const answers = {};
 let name = '';
 let step = -1;
 let submitting = false;
+let confettiFrame = 0;
 const $ = id => document.getElementById(id);
 const welcome = $('welcome'), quiz = $('quiz'), resultPanel = $('result');
 const progress = $('progress-wrap'), content = $('quiz-content');
@@ -42,8 +43,8 @@ function renderStep() {
   $('step-label').textContent = current === 'name' ? 'First, a little introduction' : current === 'prediction' ? 'Your big guess' : 'How well do you know Mama and Papa?';
   $('step-count').textContent = current === 'name' ? 'Your name' : current === 'prediction' ? 'Final question' : `Question ${quizNumber} of 9`;
   $('progress-fill').style.width = `${Math.round(((step + 1) / steps.length) * 100)}%`;
-  $('back-button').textContent = step === 0 ? '← Welcome' : '← Back';
-  $('next-button').innerHTML = current === 'prediction' ? 'Send my answers <span>♡</span>' : 'Continue <span>→</span>';
+  $('back-button').textContent = step === 0 ? '\u2190 Welcome' : '\u2190 Back';
+  $('next-button').innerHTML = current === 'prediction' ? 'Send my answers <span>\u2661</span>' : 'Continue <span>\u2192</span>';
   if (current === 'name') {
     content.innerHTML = `<p class="question-number">LET'S GET TO KNOW YOU</p><h2>What should I call you?</h2><label class="field">Your name<input id="guest-name" type="text" maxlength="60" autocomplete="name" placeholder="e.g. Auntie Priya" required></label><p class="error" id="step-error" role="alert"></p>`;
     $('guest-name').value = name;
@@ -80,7 +81,7 @@ async function submitEntry() {
   submitting = true;
   const button = $('next-button');
   button.disabled = true;
-  button.textContent = 'Sending…';
+  button.textContent = 'Sending\u2026';
   $('back-button').disabled = true;
   try {
     const entry = { name, prediction: answers.prediction.toUpperCase(), answers: Object.fromEntries(questions.map(q => [q.key, answers[q.key]])) };
@@ -97,6 +98,7 @@ async function submitEntry() {
       $('reveal-copy').textContent = `Thank you for playing, ${name}. Our little one is already surrounded by so much love.`;
       resultPanel.classList.remove('reveal-active');
       requestAnimationFrame(() => resultPanel.classList.add('reveal-active'));
+      window.setTimeout(launchConfetti, 650);
     } else {
       $('reveal-result').hidden = true;
       $('incorrect-result').hidden = false;
@@ -106,7 +108,7 @@ async function submitEntry() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
     $('step-error').textContent = error.message || 'Something went wrong. Please try again.';
-    button.disabled = false; button.innerHTML = 'Try again <span>↻</span>'; $('back-button').disabled = false;
+    button.disabled = false; button.innerHTML = 'Try again <span>\u21bb</span>'; $('back-button').disabled = false;
   } finally { submitting = false; }
 }
 function getRequestId(entry) {
@@ -118,5 +120,65 @@ function getRequestId(entry) {
     localStorage.setItem('babyRevealRequest', JSON.stringify(saved));
   }
   return saved.id;
+}
+function launchConfetti() {
+  const canvas = $('confetti-canvas');
+  const context = canvas && canvas.getContext('2d');
+  if (!canvas || !context || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (confettiFrame) cancelAnimationFrame(confettiFrame);
+
+  const bounds = canvas.getBoundingClientRect();
+  const width = bounds.width;
+  const height = bounds.height;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  const palette = ['#d99bad', '#a9c7e6', '#c5a56e', '#f5dbe4', '#dceafb', '#fff9ec'];
+  const pieces = Array.from({ length: 150 }, () => ({
+    x: Math.random() * width,
+    y: -Math.random() * height * 0.8,
+    size: Math.random() * 6 + 4,
+    speed: Math.random() * 3.2 + 2.4,
+    drift: (Math.random() - 0.5) * 1.1,
+    rotation: Math.random() * Math.PI,
+    spin: (Math.random() - 0.5) * 0.12,
+    color: palette[Math.floor(Math.random() * palette.length)],
+    round: Math.random() < 0.28
+  }));
+  const start = performance.now();
+
+  function draw(now) {
+    const elapsed = now - start;
+    const fade = Math.max(0, 1 - Math.max(0, elapsed - 2600) / 1300);
+    context.clearRect(0, 0, width, height);
+    for (const piece of pieces) {
+      piece.x += piece.drift;
+      piece.y += piece.speed;
+      piece.rotation += piece.spin;
+      context.save();
+      context.translate(piece.x, piece.y);
+      context.rotate(piece.rotation);
+      context.globalAlpha = fade;
+      context.fillStyle = piece.color;
+      if (piece.round) {
+        context.beginPath();
+        context.ellipse(0, 0, piece.size * 0.48, piece.size * 0.34, 0, 0, Math.PI * 2);
+        context.fill();
+      } else {
+        context.fillRect(-piece.size * 0.42, -piece.size * 0.24, piece.size * 0.84, piece.size * 0.48);
+      }
+      context.restore();
+    }
+    if (elapsed < 3900 && pieces.some(piece => piece.y < height + piece.size)) {
+      confettiFrame = requestAnimationFrame(draw);
+    } else {
+      context.clearRect(0, 0, width, height);
+      confettiFrame = 0;
+    }
+  }
+
+  confettiFrame = requestAnimationFrame(draw);
 }
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
