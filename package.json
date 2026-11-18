@@ -1,0 +1,8 @@
+{
+  "name": "baby-reveal-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mobile-first baby welcome quiz backed by Netlify Functions and a private Google Sheet.",
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=18" }
+}
